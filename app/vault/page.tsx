@@ -8,7 +8,7 @@ import { encryptData, decryptData } from '@/lib/crypto';
 
 interface VaultItemType {
   id: number;
-  title: string;
+  encrypted_title: string;
   encrypted_username?: string;
   encrypted_password: string;
   encrypted_url?: string;
@@ -66,7 +66,7 @@ export default function VaultPage() {
 
     try {
       const encryptedData = {
-        title: formData.title,
+        encryptedTitle: encryptData(formData.title, masterPassword),
         encryptedUsername: formData.username ? encryptData(formData.username, masterPassword) : '',
         encryptedPassword: encryptData(formData.password, masterPassword),
         encryptedUrl: formData.url ? encryptData(formData.url, masterPassword) : '',
@@ -98,7 +98,7 @@ export default function VaultPage() {
   const handleEdit = (item: VaultItemType) => {
     setEditingItem(item);
     setFormData({
-      title: item.title,
+      title: item.encrypted_title ? decryptData(item.encrypted_title, masterPassword) : '',
       username: item.encrypted_username ? decryptData(item.encrypted_username, masterPassword) : '',
       password: item.encrypted_password ? decryptData(item.encrypted_password, masterPassword) : '',
       url: item.encrypted_url ? decryptData(item.encrypted_url, masterPassword) : '',
@@ -127,9 +127,10 @@ export default function VaultPage() {
 
   const filteredItems = items.filter(item => {
     const query = searchQuery.toLowerCase();
+    const decryptedTitle = item.encrypted_title ? decryptData(item.encrypted_title, masterPassword) : '';
     const decryptedUsername = item.encrypted_username ? decryptData(item.encrypted_username, masterPassword) : '';
     return (
-      item.title.toLowerCase().includes(query) ||
+      decryptedTitle.toLowerCase().includes(query) ||
       decryptedUsername.toLowerCase().includes(query)
     );
   });

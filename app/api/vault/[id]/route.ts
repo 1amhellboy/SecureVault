@@ -17,9 +17,9 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { title, encryptedUsername, encryptedPassword, encryptedUrl, encryptedNotes } = await request.json();
+    const { encryptedTitle, encryptedUsername, encryptedPassword, encryptedUrl, encryptedNotes } = await request.json();
 
-    if (!title || !encryptedPassword) {
+    if (!encryptedTitle || !encryptedPassword) {
       return NextResponse.json(
         { error: 'Title and password are required' },
         { status: 400 }
@@ -27,8 +27,8 @@ export async function PUT(
     }
 
     const result = await pool.query(
-      'UPDATE vault_items SET title = $1, encrypted_username = $2, encrypted_password = $3, encrypted_url = $4, encrypted_notes = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6 AND user_id = $7 RETURNING *',
-      [title, encryptedUsername, encryptedPassword, encryptedUrl, encryptedNotes, id, user.userId]
+      'UPDATE vault_items SET encrypted_title = $1, encrypted_username = $2, encrypted_password = $3, encrypted_url = $4, encrypted_notes = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6 AND user_id = $7 RETURNING *',
+      [encryptedTitle, encryptedUsername, encryptedPassword, encryptedUrl, encryptedNotes, id, user.userId]
     );
 
     if (result.rows.length === 0) {

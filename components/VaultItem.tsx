@@ -5,7 +5,7 @@ import { useState } from 'react';
 interface VaultItemProps {
   item: {
     id: number;
-    title: string;
+    encrypted_title: string;
     encrypted_username?: string;
     encrypted_password: string;
     encrypted_url?: string;
@@ -21,6 +21,7 @@ export default function VaultItem({ item, masterPassword, onEdit, onDelete, decr
   const [showPassword, setShowPassword] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  const decryptedTitle = item.encrypted_title ? decryptData(item.encrypted_title, masterPassword) : '';
   const decryptedPassword = item.encrypted_password ? decryptData(item.encrypted_password, masterPassword) : '';
   const decryptedUsername = item.encrypted_username ? decryptData(item.encrypted_username, masterPassword) : '';
   const decryptedUrl = item.encrypted_url ? decryptData(item.encrypted_url, masterPassword) : '';
@@ -38,7 +39,7 @@ export default function VaultItem({ item, masterPassword, onEdit, onDelete, decr
   return (
     <div className="bg-white rounded-lg shadow p-4 hover:shadow-md transition">
       <div className="flex justify-between items-start mb-2">
-        <h3 className="font-semibold text-lg">{item.title}</h3>
+        <h3 className="font-semibold text-lg">{decryptedTitle}</h3>
         <div className="flex gap-2">
           <button
             onClick={() => onEdit(item)}

@@ -18,7 +18,7 @@ export async function initDatabase() {
       CREATE TABLE IF NOT EXISTS vault_items (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        title VARCHAR(255) NOT NULL,
+        encrypted_title TEXT NOT NULL,
         encrypted_username TEXT,
         encrypted_password TEXT NOT NULL,
         encrypted_url TEXT,

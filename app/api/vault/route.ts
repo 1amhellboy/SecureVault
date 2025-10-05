@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await pool.query(
-      'SELECT id, title, encrypted_username, encrypted_password, encrypted_url, encrypted_notes, created_at, updated_at FROM vault_items WHERE user_id = $1 ORDER BY created_at DESC',
+      'SELECT id, encrypted_title, encrypted_username, encrypted_password, encrypted_url, encrypted_notes, created_at, updated_at FROM vault_items WHERE user_id = $1 ORDER BY created_at DESC',
       [user.userId]
     );
 
@@ -39,9 +39,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { title, encryptedUsername, encryptedPassword, encryptedUrl, encryptedNotes } = await request.json();
+    const { encryptedTitle, encryptedUsername, encryptedPassword, encryptedUrl, encryptedNotes } = await request.json();
 
-    if (!title || !encryptedPassword) {
+    if (!encryptedTitle || !encryptedPassword) {
       return NextResponse.json(
         { error: 'Title and password are required' },
         { status: 400 }
@@ -49,8 +49,8 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await pool.query(
-      'INSERT INTO vault_items (user_id, title, encrypted_username, encrypted_password, encrypted_url, encrypted_notes) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [user.userId, title, encryptedUsername, encryptedPassword, encryptedUrl, encryptedNotes]
+      'INSERT INTO vault_items (user_id, encrypted_title, encrypted_username, encrypted_password, encrypted_url, encrypted_notes) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [user.userId, encryptedTitle, encryptedUsername, encryptedPassword, encryptedUrl, encryptedNotes]
     );
 
     return NextResponse.json({ item: result.rows[0] });
