@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import pool from '@/lib/db';
+import { VaultItemDB } from '@/lib/db-utils';
 import { getAuthUser } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
@@ -13,12 +13,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const result = await pool.query(
-      'SELECT id, encrypted_title, encrypted_username, encrypted_password, encrypted_url, encrypted_notes, created_at, updated_at FROM vault_items WHERE user_id = $1 ORDER BY created_at DESC',
-      [user.userId]
-    );
+    const { searchParams } = new URL(request.url);
+    const category = searchParams.get('category');
+    const search = searchParams.get('search');
 
-    return NextResponse.json({ items: result.rows });
+    let items;
+    if (search) {
+      items = await VaultItemDB.search(user.userId, search);
+    } else {
+      items = await VaultItemDB.findByUserId(user.userId, category || undefined);
+    }
+
+    return NextResponse.json({ items });
   } catch (error) {
     console.error('Get vault items error:', error);
     return NextResponse.json(
@@ -39,7 +45,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { encryptedTitle, encryptedUsername, encryptedPassword, encryptedUrl, encryptedNotes } = await request.json();
+    const { 
+      encryptedTitle, 
+      encryptedUsername, 
+      encryptedPassword, 
+      encryptedUrl, 
+      encryptedNotes, 
+      category = 'General' 
+    } = await request.json();
 
     if (!encryptedTitle || !encryptedPassword) {
       return NextResponse.json(
@@ -48,12 +61,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await pool.query(
-      'INSERT INTO vault_items (user_id, encrypted_title, encrypted_username, encrypted_password, encrypted_url, encrypted_notes) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [user.userId, encryptedTitle, encryptedUsername, encryptedPassword, encryptedUrl, encryptedNotes]
+    const item = await VaultItemDB.create(
+      user.userId,
+      encryptedTitle,
+      encryptedPassword,
+      encryptedUsername,
+      encryptedUrl,
+      encryptedNotes,
+      category
     );
 
-    return NextResponse.json({ item: result.rows[0] });
+    return NextResponse.json({ item });
   } catch (error) {
     console.error('Create vault item error:', error);
     return NextResponse.json(

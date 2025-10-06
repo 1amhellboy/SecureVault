@@ -1,6 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
-import pool from '@/lib/db';
+import { VaultItemDB } from '@/lib/db-utils';
 import { getAuthUser } from '@/lib/auth';
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await getAuthUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { id } = await params;
+    const itemId = parseInt(id);
+
+    if (isNaN(itemId)) {
+      return NextResponse.json(
+        { error: 'Invalid item ID' },
+        { status: 400 }
+      );
+    }
+
+    const item = await VaultItemDB.findByIdAndUserId(itemId, user.userId);
+
+    if (!item) {
+      return NextResponse.json(
+        { error: 'Item not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ item });
+  } catch (error) {
+    console.error('Get vault item error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
 
 export async function PUT(
   request: NextRequest,
@@ -17,7 +60,24 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { encryptedTitle, encryptedUsername, encryptedPassword, encryptedUrl, encryptedNotes } = await request.json();
+    const itemId = parseInt(id);
+
+    if (isNaN(itemId)) {
+      return NextResponse.json(
+        { error: 'Invalid item ID' },
+        { status: 400 }
+      );
+    }
+
+    const { 
+      encryptedTitle, 
+      encryptedUsername, 
+      encryptedPassword, 
+      encryptedUrl, 
+      encryptedNotes, 
+      category,
+      isFavorite 
+    } = await request.json();
 
     if (!encryptedTitle || !encryptedPassword) {
       return NextResponse.json(
@@ -26,19 +86,27 @@ export async function PUT(
       );
     }
 
-    const result = await pool.query(
-      'UPDATE vault_items SET encrypted_title = $1, encrypted_username = $2, encrypted_password = $3, encrypted_url = $4, encrypted_notes = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6 AND user_id = $7 RETURNING *',
-      [encryptedTitle, encryptedUsername, encryptedPassword, encryptedUrl, encryptedNotes, id, user.userId]
-    );
+    const updates: any = {
+      encryptedTitle,
+      encryptedUsername,
+      encryptedPassword,
+      encryptedUrl,
+      encryptedNotes
+    };
 
-    if (result.rows.length === 0) {
+    if (category !== undefined) updates.category = category;
+    if (isFavorite !== undefined) updates.isFavorite = isFavorite;
+
+    const item = await VaultItemDB.update(itemId, user.userId, updates);
+
+    if (!item) {
       return NextResponse.json(
         { error: 'Item not found' },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ item: result.rows[0] });
+    return NextResponse.json({ item });
   } catch (error) {
     console.error('Update vault item error:', error);
     return NextResponse.json(
@@ -63,13 +131,18 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    const itemId = parseInt(id);
 
-    const result = await pool.query(
-      'DELETE FROM vault_items WHERE id = $1 AND user_id = $2 RETURNING id',
-      [id, user.userId]
-    );
+    if (isNaN(itemId)) {
+      return NextResponse.json(
+        { error: 'Invalid item ID' },
+        { status: 400 }
+      );
+    }
 
-    if (result.rows.length === 0) {
+    const deleted = await VaultItemDB.delete(itemId, user.userId);
+
+    if (!deleted) {
       return NextResponse.json(
         { error: 'Item not found' },
         { status: 404 }

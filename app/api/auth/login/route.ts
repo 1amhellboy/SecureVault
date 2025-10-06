@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
-import pool from '@/lib/db';
+import { UserDB } from '@/lib/db-utils';
 import { generateToken } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
@@ -14,19 +14,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await pool.query(
-      'SELECT id, email, password_hash FROM users WHERE email = $1',
-      [email]
-    );
+    const user = await UserDB.findByEmail(email);
 
-    if (result.rows.length === 0) {
+    if (!user) {
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
       );
     }
 
-    const user = result.rows[0];
+    if (!user.is_active) {
+      return NextResponse.json(
+        { error: 'Account is deactivated' },
+        { status: 401 }
+      );
+    }
+
     const validPassword = await bcrypt.compare(password, user.password_hash);
 
     if (!validPassword) {
@@ -35,6 +38,9 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Update last login
+    await UserDB.updateLastLogin(user.id);
 
     const token = generateToken({ userId: user.id, email: user.email });
 
