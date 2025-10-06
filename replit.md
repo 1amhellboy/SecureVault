@@ -119,7 +119,7 @@ npm install
 npm run dev
 ```
 
-The app runs on http://localhost:5000 (or your Replit webview URL)
+The app runs on http://localhost:5000 
 
 ## Database Initialization
 The database schema is automatically created on first API call to `/api/init`, which happens when the server starts.
